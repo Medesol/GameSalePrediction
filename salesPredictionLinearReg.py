@@ -1,9 +1,10 @@
 from dataCursor import *
 from sklearn import linear_model
 from sklearn.model_selection import KFold, cross_val_score
-from sklearn import cross_validation
+from sklearn.metrics import r2_score
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
     file_name = "data/merging_output.csv"
@@ -23,8 +24,11 @@ if __name__ == '__main__':
 
     X = np.array(X).reshape(-1, 1)
     y = np.array(y)
+    shuff = np.random.permutation(len(y))
+    X, y = X[shuff], y[shuff]
 
     score = []
+    variance = []
 
     kf = KFold(n_splits=5)
     kf.get_n_splits(X)
@@ -37,11 +41,18 @@ if __name__ == '__main__':
 
         y_pre = reg.predict(X_test)
         score.append(np.average(abs(y_pre - y_test)))
+        variance.append(r2_score(y_test, y_pre))
+        '''plt.scatter(X_test, y_test, color='black')
+        plt.plot(X_test, y_pre, color='blue', linewidth=2)
+        plt.xticks(())
+        plt.yticks(())
+        plt.show()'''
 
     print(score)
+    print(variance)
     score = np.average(score)
 
-    scores = cross_val_score(reg, X, y, cv=5)
+    #scores = cross_val_score(reg, X, y, cv=5)
     print(score)
 
 
