@@ -7,11 +7,13 @@ Created on Tue Sep 26 16:42:44 2017
 @author: Pabloski
 """
 
+import numpy as np
 import pandas as pd
 
 SALES_FILENAME = "vgsales.csv"
 CRITICS_FILENAME = "ign.csv"
 OUTPUT_FILENAME = "merging_output.csv"
+LEARNING_FILENAME = "learning_data.csv"
 
 # We rename the 'title' and 'platform' 
 # columns from the IGN file so they are merged
@@ -64,6 +66,21 @@ IGN_TO_VG_PLATFORM_NAMES = {
         'Wii':'Wii',
         'NES':'NES'
         }
+
+LEARNING_DISCRETE_COLUMNS = [
+    "Platform",
+    "Genre",
+    "Publisher",
+    "release_month"
+]
+
+LEARNING_CONTINUOUS_COLUMNS = [
+    "score"
+]
+
+LEARNING_OUTPUT_COLUMNS = [
+    "Global_Sales"
+]
 
 def check_platform_translation(ign_to_vg_map, critics, sales):
     # We announce all platform names we are not 
@@ -139,5 +156,57 @@ def merge(critics_filename, sales_filename, output_filename):
     output.to_csv(output_filename)
     print("Data saved in file: " + output_filename)
 
+    return output
+
+def process_for_learning(merged_data, output_filename):
+    # We will output a file with the following columns in order;
+    # 1: columns for output values
+    # 2: columns for continuous values to learn from
+    # 3: columns for discrete values to learn from
+    n_output = len(LEARNING_OUTPUT_COLUMNS)
+    n_continuous_input = len(LEARNING_CONTINUOUS_COLUMNS)
+
+    # Store a mapping of discrete values to their corresponding
+    # index in the new dataset
+    #
+    # This dictionary will contain a dictionary for each discrete
+    # column name specified in LEARNING_DISCRETE_COLUMNS.
+    #
+    # That dictionary will contain a mapping of each discrete value
+    # appearing in it into the column assigned to it in the learning
+    # data.
+    discrete_to_index = {}
+    next_free_column = n_output + n_continuous_input
+
+    for discrete_column_name in LEARNING_DISCRETE_COLUMNS:
+        discrete_column = merged_data[discrete_column_name]
+        column_dict = {}
+
+        for value in discrete_column:
+            if value not in column_dict:
+                column_dict[value] = next_free_column
+                next_free_column += 1
+
+        discrete_to_index[discrete_column_name] = column_dict
+
+    learning_data = np.zeros((len(merged_data), next_free_column))
+
+    # Copy output values
+    for i, output_name in enumerate(LEARNING_OUTPUT_COLUMNS):
+        learning_data[:, i] = merged_data[output_name]
+
+    for i, continuous_input_name in enumerate(LEARNING_CONTINUOUS_COLUMNS):
+        learning_data[:, n_output + i] = merged_data[continuous_input_name]
+
+    for i, discrete_column_name in enumerate(LEARNING_DISCRETE_COLUMNS):
+        for j, value in enumerate(merged_data[discrete_column_name]):
+            n_learning_column = discrete_to_index[discrete_column_name][value]
+            learning_data[j][n_learning_column] = 1
+
+    np.savetxt(output_filename, learning_data, delimiter=",")
+
+    return learning_data
+
 if __name__ == "__main__":
-    merge(CRITICS_FILENAME, SALES_FILENAME, OUTPUT_FILENAME)
+    merged_data = merge(CRITICS_FILENAME, SALES_FILENAME, OUTPUT_FILENAME)
+    learning_data = process_for_learning(merged_data, LEARNING_FILENAME)
