@@ -70,7 +70,8 @@ IGN_TO_VG_PLATFORM_NAMES = {
 LEARNING_DISCRETE_COLUMNS = [
     "Platform",
     "Genre",
-    "Publisher",
+    #"Publisher",
+    "editors_choice",
     "release_month"
 ]
 

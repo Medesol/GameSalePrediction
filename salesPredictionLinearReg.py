@@ -1,28 +1,30 @@
 from dataCursor import *
 from sklearn import linear_model
 from sklearn.model_selection import KFold, cross_val_score
-from sklearn import cross_validation
 import numpy as np
 import pandas as pd
 
 if __name__ == '__main__':
-    file_name = "data/merging_output.csv"
-    origin_data = pd.read_csv(file_name, encoding='gbk')
-
-    #X = np.array([x for x in origin_data['score'] if x < 10])
-    #y = np.array(origin_data['Global_Sales'])
+    file_name = "data/learning_data.csv"
+    origin_data = pd.read_csv(file_name, header=None, encoding='gbk')
 
     X = []
     y = []
-    for i in range(len(origin_data['score'])):
-        x_val = origin_data['score'][i]
-        y_val = origin_data['Global_Sales'][i]
+    n_columns = len(origin_data.columns)
+    n_rows = len(origin_data)
+    for i in range(n_rows):
+        y_val = origin_data[0][i]
+        x_val = [origin_data[j][i] for j in range(1, n_columns)]
         if y_val < 10:
             X.append(x_val)
             y.append(y_val)
 
-    X = np.array(X).reshape(-1, 1)
-    y = np.array(y)
+    X = np.array(X)
+    y = np.array(y).reshape((-1, 1))
+
+    shuffled_indexes = np.random.permutation(range(X.shape[0]))
+    X = X[shuffled_indexes]
+    y = y[shuffled_indexes]
 
     score = []
 
@@ -39,14 +41,13 @@ if __name__ == '__main__':
         score.append(np.average(abs(y_pre - y_test)))
 
     print(score)
-    score = np.average(score)
+    print(np.average(score))
 
     scores = cross_val_score(reg, X, y, cv=5)
-    print(score)
+    print(scores)
 
-
-    for i in range(11):
-        print(reg.predict(i))
+    subset = X[[i for i in range(11)]]
+    print(reg.predict(subset))
 
 
     '''X, sales = dataCursor()
