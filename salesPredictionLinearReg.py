@@ -1,18 +1,24 @@
 from dataCursor import *
 from pprint import pprint
 from sklearn import linear_model
+from sklearn import tree
+from sklearn.externals.six import StringIO
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.model_selection import KFold, cross_val_score
 import numpy as np
+import pydotplus as pydot
 import pandas as pd
 
 def test_linear(X_train, y_train, X_test, y_test):
 
     # Linear regression prediction
+    discretize = lambda y : np.array([0 if x < 1 else 1 if x < 5 else 2 for x in y])
+    discrete_y_train = discretize(y_train)
+    discrete_y_test = discretize(y_test)
     reg = linear_model.LinearRegression()
-    reg.fit(X_train, y_train)
+    reg.fit(X_train, discrete_y_train)
     y_pre = reg.predict(X_test)
-    errors = abs(y_pre - y_test)
+    errors = abs(y_pre - discrete_y_test)
 
     return errors
 
@@ -29,6 +35,24 @@ def test_lda(X_train, y_train, X_test, y_test):
 
     errors = abs(y_pred - discrete_y_test)
 
+    return errors
+
+def test_decisiontree(X_train, y_train, X_test, y_test):
+    # Decision Tree Classifier
+    discretize = lambda y : np.array([0 if x < 1 else 1 if x < 5 else 2 for x in y])
+    discrete_y_train = discretize(y_train)
+    discrete_y_test = discretize(y_test)
+
+    clf = tree.DecisionTreeClassifier(criterion="entropy")
+    clf.fit(X_train, discrete_y_train)
+    dot_data = StringIO()
+    tree.export_graphviz(clf, out_file=dot_data, filled=True, rounded=True)
+    graph = pydot.graph_from_dot_data(dot_data.getvalue())
+    graph.write_pdf('Tree_Graph.pdf')
+    print('Check file Tree_graph.pdf for Decision Tree information')
+    print(clf.score(X_test, discrete_y_test))
+    y_predict = clf.predict(X_test)
+    errors = abs(y_predict - discrete_y_test)
     return errors
 
 def evaluate(test_model):
@@ -112,3 +136,6 @@ if __name__ == '__main__':
 
     print("\n\nLDA:")
     evaluate(test_lda)
+
+    print("\n\nDecision Tree:")
+    evaluate(test_decisiontree)
